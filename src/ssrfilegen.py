@@ -3,7 +3,8 @@ from openpyxl import Workbook
 import openpyxl
 
 
-def readAndWriteSSRFile():
+def readHANTAAndWriteSSRFile():
+    print('~~~~~# Came in for Read HANTA... File and Generate SSR File #~~~~~') #logger*****
     inpFile='HANTAAAAAAA.xlsx'
     print('reading file from : '+inpFile)
     mainDict={}
@@ -29,10 +30,10 @@ def readAndWriteSSRFile():
         # print(eachDf)
         # print()
 
-
+    print('~~~~~# ALL SSR FILE GENERATED #~~~~~') #logger*****
     
 
 
 # ##############################################
-
-readAndWriteSSRFile()
+if __name__=='__main__':
+    readHANTAAndWriteSSRFile()
