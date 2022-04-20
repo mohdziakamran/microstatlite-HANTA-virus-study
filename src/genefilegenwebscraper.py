@@ -47,8 +47,8 @@ def prepareGENEFileFromAccnNum(accnNum:str):
             for txt in cdsTextList:
                 if 'CDS' in txt:
                     startend=txt.split('             ')[1].split('..')
-                    dict['START']=startend[0]
-                    dict['END']=startend[1]
+                    dict['START']=int(startend[0])
+                    dict['END']=int(startend[1])
                     print('START : '+startend[0]+'\nEND : '+startend[1]) #logger*****
                 elif 'product' in txt:
                     product=txt.split('product=')[1].replace('"','')
@@ -58,7 +58,7 @@ def prepareGENEFileFromAccnNum(accnNum:str):
     # -----------------------------------------------------
 
     # -----Write gene excel file---------------------------
-    df.to_excel("gene_data/GENE_File_"+accnNum+".xlsx",index=False)
+    df.to_excel("gene_data/Gene_File_"+accnNum+".xlsx",index=False)
     print('~~~~~# GENE_FILE_'+accnNum+' GENERATED #~~~~~')#logger*****
     # -----------------------------------------------------
 
