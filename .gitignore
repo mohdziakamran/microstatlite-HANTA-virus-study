@@ -5,3 +5,4 @@ ssr_data/
 gene_data/
 chromedriver.exe
 src/chromedriver.exe
+*.pyc
