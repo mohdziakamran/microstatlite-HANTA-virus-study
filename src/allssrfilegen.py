@@ -1,8 +1,13 @@
+import logging
 import pandas as pd
 
+
 def readHANTAAndWriteSSRFile(inpFile:str):
-    print('~~~~~# Came in for Read HANTA... File and Generate SSR File #~~~~~') #logger*****
-    print('READING INPUT FILE : '+inpFile)
+    logger=logging.getLogger(__name__)
+    logger.info('~~~~~# Came in for Read HANTA... File and Generate SSR File #~~~~~')
+    # print('~~~~~# Came in for Read HANTA... File and Generate SSR File #~~~~~') #logger*****
+    logger.info('READING INPUT FILE : %s',inpFile)
+    # print('READING INPUT FILE : '+inpFile)
     accnNumList=[]
 
     # ------panda aproach---------
@@ -23,12 +28,19 @@ def readHANTAAndWriteSSRFile(inpFile:str):
         # write excel file
         eachDf.to_excel("ssr_data/SSR_File_"+accnNum+".xlsx",index=False)
 
-    print('~~~~~# ALL SSR FILE GENERATED #~~~~~') #logger*****
+    # print('~~~~~# ALL SSR FILE GENERATED #~~~~~') #logger*****
+    logger.info('~~~~~# ALL SSR FILE GENERATED #~~~~~')
     return accnNumList
     
 
 
 # ##############################################
 if __name__=='__main__':
+    logging.basicConfig(handlers=[
+                        logging.FileHandler("logfile.log"),
+                        logging.StreamHandler()
+                    ],
+                    format = "%(levelname)s %(asctime)s - %(name)s : %(message)s", 
+                    level = logging.DEBUG)
     inpFile='HANTAAAAAAA.xlsx'
     readHANTAAndWriteSSRFile(inpFile)

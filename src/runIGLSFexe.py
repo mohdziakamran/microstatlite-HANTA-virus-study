@@ -1,4 +1,5 @@
 # from pywinauto import application
+import logging
 import os
 import subprocess
 import time
@@ -10,10 +11,15 @@ from pywinauto.application import Application
 import pywinauto
 from ctypes import *
 
+from .mplogger import create_logger
 
-def runIGLSFapp(accetionCode:str , lock:multiprocessing.Lock, faulter):
+
+def runIGLSFapp(accetionCode:str , lock:multiprocessing.Lock, faulter:dict):
+    # logger=logging.getLogger(__name__)
+    logger=create_logger(__name__)
+    if accetionCode in faulter.keys(): return
     try:
-        print('~~~~~# STARTED RUNNING IGLSF APP FOR Accession Number : '+accetionCode+' #~~~~~') #logger*****
+        logger.info('~~~~~# STARTED RUNNING IGLSF APP FOR Accession Number : '+accetionCode+' #~~~~~') #logger*****
         wait_time=5
 
         # TODO replace the path with os path 
@@ -26,8 +32,8 @@ def runIGLSFapp(accetionCode:str , lock:multiprocessing.Lock, faulter):
 
         pid = subprocess.Popen(["IGLSF.exe"]).pid
         # lock acquire
-        app=Application().connect(process=pid,timeout=120)
-        app.IGLSF.wait('visible',timeout=120)
+        app=Application().connect(process=pid,timeout=60)
+        app.IGLSF.wait('visible',timeout=60)
         time.sleep(wait_time)
 
         # for Gene input file----------------
@@ -85,27 +91,44 @@ def runIGLSFapp(accetionCode:str , lock:multiprocessing.Lock, faulter):
         # ====================================
         time.sleep(wait_time)
 
+        try :
+            
+            exl=Application().connect(title='SSR_File_'+accetionCode+' - Excel',timeout=120)
+            time.sleep(wait_time)
+            exl.window(title_re=u'SSR_File_'+accetionCode+' - Excel').wait('visible').set_focus().close()
+        except:
+            logger.error('Failed To Close Excel For ACCN NUM : %s',accetionCode)    
 
-        exl=Application().connect(title='SSR_File_'+accetionCode+' - Excel',timeout=60)
-        exl.window(title_re=u'SSR_File_'+accetionCode+' - Excel').wait('ready').close()
-        app.kill()
-        
-        print('~~~~~# UPDATED SSR FILE FOR Accession Number : '+accetionCode+' #~~~~~') #logger*****
+        logger.info('~~~~~# UPDATED SSR FILE FOR Accession Number : '+accetionCode+' #~~~~~') #logger*****
     except :
-        print('IGLSF APP EXECUTION FAILED FOR ACCN NUM : '+accetionCode)
-        faulter.append((accetionCode,'FAILED AT IGLSF APP EXECUTION'))
-        print('ACCN NUM : '+accetionCode+', Added To Faulter')
-
+        logger.error('IGLSF APP EXECUTION FAILED FOR ACCN NUM : '+accetionCode)
+        # with lock:
+        # faulter.append((accetionCode,'FAILED AT IGLSF APP EXECUTION'))
+        faulter[accetionCode]='FAILED AT IGLSF APP EXECUTION ~ {SSR file Path : '+os.getcwd()+'\\'+ssrinputfile+' | GENE file Path : '+os.getcwd()+'\\'+geneinputfile+' }'
+        logger.info('ACCN NUM : %s, Added To Faulter',accetionCode)
+    finally:
+        app.kill()
 
 
 # ##################################################################
 if __name__=='__main__':
+    # multiprocessing.log_to_stderr(level=logging.INFO, handlers=[
+    #                 logging.FileHandler("logfile.log"),
+    #                 logging.StreamHandler()
+    #             ])
+    # logging.basicConfig(handlers=[
+    #                 logging.FileHandler("logfile.log"),
+    #                 logging.StreamHandler()
+    #             ],
+    #             format = "%(levelname)s %(asctime)s - %(name)s : %(message)s", 
+    #             level = logging.INFO)
+
     executor = concurrent.futures.ProcessPoolExecutor(1)
     m = multiprocessing.Manager()
     lock = m.Lock()
-    fut=[]
-    futures = [executor.submit(runIGLSFapp, an, lock, fut) for an in ["AB186420","AF005727"]]
+    faulter=m.dict()
+    futures = [executor.submit(runIGLSFapp, an, lock, faulter) for an in ["AF482717"]]#,"AF005727"]]
     concurrent.futures.wait(futures)
-    # runIGLSFapp(accetionCode="AB186420",lock= multiprocessing.Lock())
+    # runIGLSFapp(accetionCode="AB186420",lock= multiprocessing.Lock(), faulter=faulter)
 
-    print(fut)
+    print(faulter)
