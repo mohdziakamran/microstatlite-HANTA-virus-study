@@ -29,6 +29,9 @@ def runIGLSFapp(accetionCode:str , lock:multiprocessing.Lock, faulter:dict):
         # ssrinputfile:str=r"C:\Users\User\OneDrive\Desktop\gitrepo\SSR_File_GR203.xlsx"
         geneinputfile:str="gene_data\Gene_File_"+accetionCode+".xlsx"
         ssrinputfile:str="ssr_data\SSR_File_"+accetionCode+".xlsx"
+        if not  (os.path.exists(ssrinputfile) and os.path.exists(geneinputfile) ):
+            logger.info('ACCN NUM : %s, SSR_File Exist : %s | GENE_File Exist : %s',accetionCode,str(os.path.exists(ssrinputfile)),str(os.path.exists(geneinputfile)))
+            raise Exception()
 
         pid = subprocess.Popen(["IGLSF.exe"]).pid
         # lock acquire

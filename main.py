@@ -18,6 +18,11 @@ def main(inp:str):
     logger=logging.getLogger(__name__)
     startTime=datetime.now()
 
+    try:
+        os.system('TASKKILL /F /IM excel.exe')
+    except:
+        pass
+    
     if not os.path.exists('src/chromedriver.exe'):
         logger.info('~~~~~# COPYING CHROME DRIVER IN /SRC #~~~~~')
         shutil.copyfile('chromedriver.exe','src/chromedriver.exe')
@@ -95,6 +100,9 @@ def main(inp:str):
         futures = [executor.submit(process_ssr_file_for_accnum, ansg[0],ansg[1], dict_list, faulterList) for ansg in accnList_segment]
         concurrent.futures.wait(futures)
         main_df=pd.DataFrame.from_records(dict_list)
+        if(inp in [5]):
+            old_df=pd.read_excel("Main_Result_File.xlsx",sheet_name=0)
+            main_df=main_df.append(old_df)
         main_df.to_excel("Main_Result_File.xlsx",index=False)
 
     # ------write faulter list file if possible to path---------
@@ -102,7 +110,7 @@ def main(inp:str):
         faulter_str=''
         flk=faulterList.keys()
         for an_sg in accnList_segment:
-            if an_sg[0] in flk : faulter_str=faulter_str+an_sg[0]+','+an_sg[1]+'|'
+            if an_sg[0] in flk & 'FAILED AT GENE FILE GENRATION' not in an_sg[1] : faulter_str=faulter_str+an_sg[0]+','+an_sg[1]+'|'
         if len(faulter_str)!=0:
             file=open('faulter_list.txt','w')
             file.write(faulter_str[:-1])
