@@ -40,8 +40,24 @@ def main(inp:str):
         logger.info('MAIN INPUT FILE : '+inpFile)
         accnList=readHANTAAndWriteSSRFile(inpFile)
 
+    # ---read accn list from faulter and start from gene file generation-----
+    if inp in [6]:
+        try :
+            accnList=[]
+            with open('faulter_list.txt', 'r') as file:
+                data_list = file.read().replace('\n', '').strip().split('|')
+            for elem in data_list:
+                elem_ls=elem.split(',')
+                # accnList_segment.append((elem_ls[0],elem_ls[1]))
+                # accnList=accnList_segment
+                accnList.append(elem_ls[0])
+            print("APP STARTED...")
+        except:
+            logger.error("EXCEPTION WHILE READING FILE FROM FAULTER_LIST.TXT-READ")
+            return
+
     # --------generage Gene file -------------------
-    if inp in [1]:
+    if inp in [1,6]:
         # executor = concurrent.futures.ProcessPoolExecutor(20)
         futures = [executor.submit(prepareGENEFileFromAccnNum, an, accnList_segment, faulterList) for an in accnList]
         concurrent.futures.wait(futures)
@@ -79,13 +95,13 @@ def main(inp:str):
                 elem_ls=elem.split(',')
                 accnList_segment.append((elem_ls[0],elem_ls[1]))
                 accnList=accnList_segment
-                print("APP STARTED...")
+            print("APP STARTED...")
         except:
             logger.error("EXCEPTION WHILE READING FILE FROM FAULTER_LIST.TXT-READ")
             return
 
     # -------run IGLSF app for all accn number except for faulter list ------------
-    if inp in [1,3,5]:
+    if inp in [1,3,5,6]:
         # executor = concurrent.futures.ProcessPoolExecutor(2)
         lock = m.Lock()
         futures = [executor.submit(runIGLSFapp, ansg[0], lock, faulterList) for ansg in accnList_segment]
@@ -96,11 +112,11 @@ def main(inp:str):
 
 
     # ------process Modified SSR file-----------------------
-    if inp in [1,3,4,5]:
+    if inp in [1,3,4,5,6]:
         futures = [executor.submit(process_ssr_file_for_accnum, ansg[0],ansg[1], dict_list, faulterList) for ansg in accnList_segment]
         concurrent.futures.wait(futures)
         main_df=pd.DataFrame.from_records(dict_list)
-        if(inp in [5]):
+        if(inp in [5,6]):
             old_df=pd.read_excel("Main_Result_File.xlsx",sheet_name=0)
             main_df=main_df.append(old_df)
         main_df.to_excel("Main_Result_File.xlsx",index=False)
@@ -110,7 +126,8 @@ def main(inp:str):
         faulter_str=''
         flk=faulterList.keys()
         for an_sg in accnList_segment:
-            if an_sg[0] in flk & 'FAILED AT GENE FILE GENRATION' not in an_sg[1] : faulter_str=faulter_str+an_sg[0]+','+an_sg[1]+'|'
+            # if an_sg[0] in flk & 'FAILED AT GENE FILE GENRATION' not in an_sg[1] : faulter_str=faulter_str+an_sg[0]+','+an_sg[1]+'|'
+            if an_sg[0] in flk : faulter_str=faulter_str+an_sg[0]+','+an_sg[1]+'|'
         if len(faulter_str)!=0:
             file=open('faulter_list.txt','w')
             file.write(faulter_str[:-1])
@@ -142,7 +159,20 @@ def main(inp:str):
         logger.info(an+'\t: '+faulterList[an])
     
     logger.info("\n+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n")
+    
+    # if faulter file exist in path then give option for rerun with faulter list? from IGLSF default
+    # step 1 write faulter accn nums to file 
+    # y/n options 
+    if os.path.exists("faulter_list.txt"):
+        print()
+        print()
+        print("THERE IS SOME FAILURE CASE FOUND, DO YOU WISH TO RE-RUN THEM FROM IGLFS APP EXECUTION AGAIN?")
+        re_inp=input("TYPE 'Y' FOR YES / 'N' FOR NO (Y/N)>")
 
+        while re_inp.upper() not in ['Y','N']:
+            re_inp=input("TYPE 'Y' FOR YES / 'N' FOR NO (Y/N)>")
+        if re_inp.upper() == 'Y':
+            main(6)
 # ##############################################################
 
 
@@ -180,8 +210,9 @@ if __name__=='__main__':
         print("3. START FROM IGLSF APP RUN ")
         print("4. START FROM PROCESSING UPDATED SSR FILE AND GENERATE MAIN EXCEL FILE ")
         print("5. START FROM IGLSF APP RUN, READ DATA FROM FAULTER_LIST.TXT ")
+        print("6. START FROM Gene Fiel Generation, READ DATA FROM FAULTER_LIST.TXT ")
         print()
-        while not inp in [3,4,5]:
+        while not inp in [3,4,5,6]:
             inp=input('TYPE OPTION =>')
             try : inp=int(inp)
             except : 
@@ -189,9 +220,10 @@ if __name__=='__main__':
                 inp=-1
 
     # --------- Start Executions ----------------
-    if inp==1 and os.path.exists("logfile.log"):
+    if inp in [1] and os.path.exists("logfile.log"):
         os.remove("logfile.log")
 
+    # --Logger config-----
     logging.basicConfig(handlers=[
                 logging.FileHandler("logfile.log"),
                 logging.StreamHandler()
@@ -200,10 +232,13 @@ if __name__=='__main__':
             format=('[%(asctime)s| %(levelname)s| %(processName)s] - %(name)s : %(message)s'),
             level = logging.INFO)
 
-    if inp == 1:
+    if inp in [1]:
         try:
-            shutil.rmtree('ssr_data')
-            shutil.rmtree('gene_data')
+            os.system('TASKKILL /F /IM excel.exe')
+            if os.path.exists("ssr_data"):
+                shutil.rmtree('ssr_data')
+            if os.path.exists("gene_data"):
+                shutil.rmtree('gene_data')
             os.makedirs('ssr_data')
             os.makedirs('gene_data')
         except :
@@ -212,19 +247,6 @@ if __name__=='__main__':
     
     main(inp)
 
-    # if faulter file exist in path then give option for rerun with faulter list? from IGLSF default
-    # step 1 write faulter accn nums to file 
-    # y/n options 
-    if os.path.exists("faulter_list.txt"):
-        print()
-        print()
-        print("THERE IS SOME FAILURE CASE FOUND, DO YOU WISH TO RE-RUN THEM FROM IGLFS APP EXECUTION AGAIN?")
-        re_inp=input("TYPE 'Y' FOR YES / 'N' FOR NO (Y/N)>")
-
-        while re_inp.upper() not in ['Y','N']:
-            re_inp=input("TYPE 'Y' FOR YES / 'N' FOR NO (Y/N)>")
-        if re_inp.upper() == 'Y':
-            main(5)
 
 
 

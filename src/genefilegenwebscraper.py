@@ -2,6 +2,7 @@
 import logging
 import multiprocessing
 from operator import index
+import os
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -10,7 +11,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.chrome.options import Options
 import pandas as pd
 
-from .mplogger import create_logger
+from mplogger import create_logger
 
 
 def prepareGENEFileFromAccnNum(accnNum:str,accnList_segment,faulterList):
@@ -62,13 +63,13 @@ def prepareGENEFileFromAccnNum(accnNum:str,accnList_segment,faulterList):
                 dict={}
                 cdsTextList=e.text.split('\n')
                 for txt in cdsTextList:
-                    if 'CDS' in txt:
+                    if ' CDS ' in txt:
                         startend=txt.split('             ')[1].split('..')
                         dict['START']=int(startend[0])
                         dict['END']=int(startend[1])
                         logger.info('%s : START : '+startend[0],accnNum) #logger*****
                         logger.info('%s : END : '+startend[1],accnNum) #logger*****
-                    elif 'product' in txt:
+                    elif 'product=' in txt:
                         product=txt.split('product=')[1].replace('"','')
                         dict['PRODUCT']=product
                         logger.info('%s : PRODUCT : '+product,accnNum)#logger*****
@@ -77,10 +78,12 @@ def prepareGENEFileFromAccnNum(accnNum:str,accnList_segment,faulterList):
 
         # -----Write gene excel file---------------------------
         if df.shape[0] == 0: raise Exception
+        # if os.path.exists("gene_data/Gene_File_"+accnNum+".xlsx"):
+        #     os.remove("gene_data/Gene_File_"+accnNum+".xlsx")
         df.to_excel("gene_data/Gene_File_"+accnNum+".xlsx",index=False)
         logger.info('~~~~~# GENE_FILE_'+accnNum+' GENERATED #~~~~~')#logger*****
         # -----------------------------------------------------
-    
+
     except :
         logger.error('GENE FILE GENRATION FAILED FOR ACCN NUM : '+accnNum)
         faulterList[accnNum]='FAILED AT GENE FILE GENRATION ~ { LINK : '+link+'}'
@@ -96,6 +99,6 @@ if __name__ == '__main__':
     #             level = logging.INFO)
     faulterList={}
     segment_list=[]
-    prepareGENEFileFromAccnNum("DQ285566",segment_list,faulterList)
+    prepareGENEFileFromAccnNum("KF892048",segment_list,faulterList)
     print(segment_list)
     print(faulterList)
